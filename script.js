@@ -24,7 +24,7 @@ document.getElementById('predictButton').addEventListener('click', async () => {
     formData.append('file', file);
 
     try {
-        const response = await fetch('http://127.0.0.1:8000/api/predict', {
+        const response = await fetch('http://3.83.132.249:8000/api/predict', {
             method: 'POST',
             body: formData
         });

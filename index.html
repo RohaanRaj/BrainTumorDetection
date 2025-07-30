@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Brain Tumor Detection</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .background {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 20% 80%, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #0a0a0a 100%);
+            z-index: -1; transition: all 0.8s ease;
+        }
+        .background.success {
+            background: radial-gradient(circle at 20% 80%, #1a4d2e 0%, #2d5a3d 25%, #3a7d4a 50%, #0a0a0a 100%);
+        }
+        .background.danger {
+            background: radial-gradient(circle at 20% 80%, #4d1a1a 0%, #5a2d2d 25%, #7d3a3a 50%, #0a0a0a 100%);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        .logo {
+            width: 80px; height: 80px; margin: 0 auto 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .logo svg { width: 40px; height: 40px; filter: brightness(0) invert(1); }
+        h1 {
+            font-size: 3.5rem; font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; margin-bottom: 16px; letter-spacing: -0.02em;
+        }
+        .subtitle {
+            font-size: 1.2rem; color: #a0a0a0; font-weight: 400;
+            max-width: 600px; margin: 0 auto; line-height: 1.6;
+        }
+        .main-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 600px;
+            min-height: 400px;
+            text-align: center;
+            transition: all 0.5s cubic-bezier(.4,2,.6,1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            word-break: break-word;
+        }
+        .main-card.show-result {
+            max-width: 800px;
+            min-height: 600px;
+            /* overflow-y: auto; */
+        }
+        .upload-section {
+            opacity: 1; transform: translateY(0); transition: all 0.5s ease;
+            position: relative; z-index: 2;
+        }
+        .upload-section.hidden {
+            opacity: 0; transform: translateY(-20px); pointer-events: none;
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        }
+        .result-section {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .result-section.show {
+            opacity: 1;
+            transform: translateY(0);
+            z-index: 3;
+            position: static;
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 40px 20px;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+        .upload-icon { font-size: 3rem; color: #667eea; margin-bottom: 16px; }
+        .upload-text { font-size: 1.1rem; color: #ffffff; margin-bottom: 8px; }
+        .upload-hint { font-size: 0.9rem; color: #888; }
+        #imageInput { display: none; }
+        #predictButton {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border: none; padding: 16px 40px; border-radius: 12px;
+            font-size: 1.1rem; font-weight: 600; cursor: pointer;
+            transition: all 0.3s ease; margin-top: 20px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+        #predictButton:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
+        }
+        #predictButton:disabled {
+            background: linear-gradient(135deg, #666 0%, #888 100%);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            opacity: 0.6;
+        }
+        #predictButton:disabled:hover {
+            transform: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        #predictionText {
+            font-size: 1.5rem; font-weight: 700; margin-bottom: 30px; color: #ffffff;
+            text-align: center;
+        }
+        .tumor-info {
+            text-align: left;
+            color: #e0e0e0;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            max-width: 100%;
+            word-break: break-word;
+            padding: 0 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .tumor-info strong { color: #667eea; }
+        .tumor-info ul { margin: 15px 0; padding-left: 25px; }
+        .tumor-info li { margin: 10px 0; }
+        .loading { display: none; text-align: center; color: #667eea; }
+        .loading.show { display: block; }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .action-card {
+            padding: 24px;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+        }
+        .action-card.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .action-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .container { padding: 20px; }
+            .main-card, .main-card.show-result { padding: 20px 5px; max-width: 99vw; min-height: 400px; }
+            .tumor-info { font-size: 0.98rem; max-height: 300px; }
+            .action-card { margin-top: 15px; padding: 20px; }
+            #predictionText { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="background" id="background"></div>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <h1>Brain Tumor Detection</h1>
+            <p class="subtitle">Advanced AI-powered analysis for early detection and comprehensive medical insights</p>
+        </div>
+        <div class="main-card" id="mainCard">
+            <div class="upload-section" id="uploadSection">
+                <h2 style="font-size: 1.5rem; margin-bottom: 20px; color: #ffffff;">Upload MRI Scan</h2>
+                <div class="upload-area" onclick="document.getElementById('imageInput').click()">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">Click to select MRI image</div>
+                    <div class="upload-hint">Supports JPG, PNG, DICOM formats</div>
+                </div>
+                <input type="file" id="imageInput" accept="image/*">
+                <button id="predictButton" disabled>Analyze Scan</button>
+            </div>
+            <div class="result-section" id="resultSection">
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <div>Analyzing your scan...</div>
+                </div>
+                <div id="resultContent" style="display: none;">
+                    <p id="predictionText"></p>
+                    <div id="tumorInfo" class="tumor-info"></div>
+                </div>
+            </div>
+        </div>
+        <div class="action-card" id="actionCard">
+            <button class="action-button" onclick="resetToUpload()">Analyze Another Scan</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
